@@ -150,8 +150,8 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
     }
 
     // Misc
-    this.device.attributes.PROMPT_TONE = this.configDev.AC_options.audioFeedback!;
-    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options.fahrenheit!;
+    this.device.attributes.PROMPT_TONE = this.configDev.AC_options.audioFeedback;
+    this.device.attributes.TEMP_FAHRENHEIT = this.configDev.AC_options.fahrenheit;
 
     // Register a callback function with MideaDevice and then refresh device status.  The callback
     // is called whenever there is a change in any attribute value from the device.
@@ -275,18 +275,18 @@ export default class AirConditionerAccessory extends BaseAccessory<MideaACDevice
   }
 
   getCurrentTemperature(): CharacteristicValue {
-    return this.device.attributes.INDOOR_TEMPERATURE ?? this.configDev.AC_options.minTemp!;
+    return this.device.attributes.INDOOR_TEMPERATURE ?? this.configDev.AC_options.minTemp;
   }
 
   getTargetTemperature(): CharacteristicValue {
     return Math.max(
-      this.configDev.AC_options.minTemp!,
-      Math.min(this.configDev.AC_options.maxTemp!, this.device.attributes.TARGET_TEMPERATURE),
+      this.configDev.AC_options.minTemp,
+      Math.min(this.configDev.AC_options.maxTemp, this.device.attributes.TARGET_TEMPERATURE),
     );
   }
 
   async setTargetTemperature(value: CharacteristicValue) {
-    value = Math.max(this.configDev.AC_options.minTemp!, Math.min(this.configDev.AC_options.maxTemp!, value as number));
+    value = Math.max(this.configDev.AC_options.minTemp, Math.min(this.configDev.AC_options.maxTemp, value as number));
     await this.device.set_target_temperature(value);
   }
 
