@@ -256,6 +256,7 @@
                 type: device.displayName,
                 advanced_options: {
                   ...defaultDeviceConfig.advanced_options,
+                  ip: byIP ? device.ip : '',
                   // ip: device.ip, // do not save IP address. Not required as device discovered on local subnet. 
                   token: device.token,
                   key: device.key,
