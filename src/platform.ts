@@ -50,6 +50,7 @@ export class MideaPlatform implements DynamicPlatformPlugin {
 
     // Add default config values
     this.platformConfig = defaultsDeep(config, defaultConfig);
+
     // Enforce min/max values
     this.platformConfig.refreshInterval = Math.max(0, Math.min(this.platformConfig.refreshInterval, 86400));
     this.platformConfig.heartbeatInterval = Math.max(10, Math.min(this.platformConfig.heartbeatInterval, 120));
@@ -81,13 +82,14 @@ export class MideaPlatform implements DynamicPlatformPlugin {
     this.log.info('Start device discovery...');
     // If IP address is in config then probe them directly
     this.platformConfig.devices.forEach((device) => {
+      device = defaultsDeep(device, defaultDeviceConfig);
       if (device.advanced_options.ip.length > 0) {
         // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
         const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
         const ip = device.advanced_options.ip.toString().trim();
         if (regexIPv4.test(ip)) {
           this.discover.discoverDeviceByIP(ip, false);
-        } else if (ip) {
+        } else {
           this.log.warn(`[${device.name}] Invalid IP address in configuration: ${ip}`);
         }
       }
