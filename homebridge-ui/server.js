@@ -110,9 +110,9 @@ class UiServer extends HomebridgePluginUiServer {
       };
     });
 
-    this.onRequest('/discover', async () => {
+    this.onRequest('/discover', async ({ ip }) => {
       try {
-        const devices = await this.blockingDiscover();
+        const devices = await this.blockingDiscover(ip);
         for (const device of devices) {
           await this.getNewCredentials(device);
         }
@@ -197,25 +197,17 @@ class UiServer extends HomebridgePluginUiServer {
    * broadcast to network(s) to discover new devices, obtain credentials
    * for each as discovered.
    */
-  async blockingDiscover() {
+  async blockingDiscover(ip = undefined) {
     let devices = [];
     const discover = new Discover(this.logger);
     return new Promise((resolve, reject) => {
       this.logger.info('Start device discovery...');
-      // If IP address is in config then probe them directly
-      Object.values(this.config.devices).forEach((device) => {
-        // for some reason, assigning the regex has to be inside the loop, else fails after first pass.
-        const regexIPv4 = /^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/gi;
-        const ip = device.advanced_options?.ip?.toString().trim();
-        if (regexIPv4.test(ip)) {
-          discover.discoverDeviceByIP(ip);
-        } else if (ip) {
-          // Need to display warning to user interface as well.
-          this.logger.warn(`[${device.name}] Invalid IP address in configuration: ${ip}`);
-        }
-      });
       // And then send broadcast to network(s)
-      discover.startDiscover();
+      if (ip) {
+        discover.discoverDeviceByIP(ip)
+      } else {
+        discover.startDiscover();
+      }
       discover.on('device', async (device) => {
         switch (device.type) {
           case DeviceType.AIR_CONDITIONER:

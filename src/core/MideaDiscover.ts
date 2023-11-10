@@ -64,11 +64,15 @@ export default class Discover extends EventEmitter {
    * an additional "retries" times spaced by 3 seconds if the target IP
    * address has not responded (recorded in the above callback).
    */
-  public discoverDeviceByIP(ip: string, retries = 3, timeout = 2000) {
+  public discoverDeviceByIP(ip: string, send_complete = true, retries = 3, timeout = 2000) {
     let tries = 0;
 
     function broadcast(this: Discover) {
       if (this.ips.includes(ip) || tries++ > retries) {
+        if (send_complete) {
+          this.logger.debug(`Device discovery by IP complete after ${retries + 1} network broadcasts.`);
+          this.emit('complete');
+        }
         return;
       }
       this.logger.debug(`Sending discovery message to ${ip}, try ${tries}...`);

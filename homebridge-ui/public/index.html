@@ -41,8 +41,15 @@
             <label for="password" class="form-label">Password</label>
             <input type="password" class="form-control" id="password">
           </div>
+          <div class="mb-3">
+            <label for="ip" class="form-label">IP (optional, only needed when the device is on another subnetwork)</label>
+            <input type="text" class="form-control" id="ip">
+          </div>
           <button class="btn btn-primary btn-login" type="submit" id="discoverBtn" style="border: 0;">
             Discover All Devices
+          </button>
+          <button class="btn btn-primary btn-login" type="submit" id="discoverByIPBtn" style="border: 0;">
+            Discover By IP
           </button>
         </form>
         <div class="text-center device-table" style="display: none" id="discoverTableWrapper">
@@ -150,18 +157,17 @@
     createForm(configSchema, configuration);
     homebridge.hideSpinner();
 
-    /*********************************************************************
-     * Discover button clicked....
-     */
-    document.getElementById('discoverBtn').addEventListener('click', async (e) => {
+
+    async function discover(e, byIP = false) {
       e.preventDefault();
 
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+      const ip = document.getElementById('ip').value;
       const registeredApp = document.getElementById('registeredApp').value;
 
-      if (!username || !password || !registeredApp) {
-        homebridge.toast.error('Please enter username, password and registered app');
+      if (!username || !password || !registeredApp || (byIP && !ip)) {
+        homebridge.toast.error('Please enter username, password and registered app. If you want to discover by IP, please enter IP address.');
         return;
       }
 
@@ -186,7 +192,10 @@
       configuration = await homebridge.request('/mergeToDefault', { config: currentConfig });
       // Ask server to discover all devices...
       console.info(`Request device discovery...`);
-      const devices = await homebridge.request('/discover');
+      
+      
+      const devices = await homebridge.request('/discover', { ip: byIP ? ip : undefined });
+      
       debugLog(`Discovered devices:\n${JSON.stringify(devices, null, 2)}`);
 
       currentConfig.devices = currentConfig.devices || [];
@@ -216,37 +225,22 @@
             addCell.appendChild(document.createTextNode('Not supported'));
           } else if (!validAuth) {
             addCell.appendChild(document.createTextNode('Invalid credentials'));
-          } else if (currentConfig.devices.find((d) => d.id === device.id) || currentConfig.devices.find((d) => d.advanced_options.ip === device.ip)) {
-            // We already have a record for this device, either with device ID or IP address, add button to update it.
+          } else if (currentConfig.devices.find((d) => d.id === device.id)) {
+            // We already have a record for this device, either with device ID, add button to update it.
             const button = document.createElement('button');
             button.innerText = 'Update';
             button.className = 'btn btn-outline-secondary btn-sm';
             button.addEventListener('click', async () => {
               // Update button clicked...
-              const viewDevById = configuration.devices.find((d) => d.id === device.id);
-              const viewDev = viewDevById || configuration.devices.find((d) => d.advanced_options.ip === device.ip);
-              if (viewDev) {
-                viewDev.id = device.id;
-                viewDev.type = device.displayName;
-                // update name if blank/undefined
-                viewDev.name = viewDev.name ? viewDev.name : device.name;
-                // update token / key
-                viewDev.advanced_options = viewDev.advanced_options || {};
-                viewDev.advanced_options.token = device.token;
-                viewDev.advanced_options.key = device.key;
-                // update IP address only if we are already storing an IP address
-                viewDev.advanced_options.ip = viewDev.advanced_options.ip ? device.ip : undefined;
-                // refresh view
-                createForm(configSchema, configuration);
+              const i = configuration.devices.findIndex((o) => o.id === device.id);
+              configuration.devices[i].advanced_options.token = device.token;
+              configuration.devices[i].advanced_options.key = device.key;
+              createForm(configSchema, configuration); // update view
 
-                addCell.removeChild(button);
-                addCell.appendChild(document.createTextNode('Updated'));
+              addCell.removeChild(button);
+              addCell.appendChild(document.createTextNode('Updated'));
 
-                homebridge.toast.success('Device Updated');
-              } else {
-                console.error(`Unable to find existing device record by ID or IP. Save configuration and retry.`);
-                homebridge.toast.error('Update failed. Save configuration and retry discovery.');
-              }
+              homebridge.toast.success('Device Updated');
             });
             addCell.appendChild(button);
           } else {
@@ -290,7 +284,22 @@
       document.getElementById('discoverTableWrapper').style.display = 'block';
 
       homebridge.hideSpinner();
+    }
+
+    /*********************************************************************
+     * Discover button clicked....
+     */
+    document.getElementById('discoverBtn').addEventListener('click', async (e) => {
+      await discover(e);
     });
+
+    /*********************************************************************
+     * Discover by IP button clicked....
+     */
+    document.getElementById('discoverByIPBtn').addEventListener('click', async (e) => {
+      await discover(e, true);
+    });
+
   })();
 
 </script>
